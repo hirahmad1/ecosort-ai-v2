@@ -1,7 +1,7 @@
 [project]
 name = "ecosort-ai"
 version = "1.0.0"
-requires-python = ">=3.12"
+requires-python = ">=3.9"
 dependencies = [
     "fastapi>=0.115.0",
     "uvicorn[standard]>=0.34.0",
@@ -13,6 +13,3 @@ dependencies = [
     "python-multipart>=0.0.9",
     "ddgs>=9.0.0",
 ]
-
-[tool.vercel]
-entrypoint = "backend.main:app"
