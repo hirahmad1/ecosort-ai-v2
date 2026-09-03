@@ -1,13 +1,7 @@
 {
-  "functions": {
-    "api/index.py": {
-      "runtime": "@vercel/python@4.7.1",
-      "maxDuration": 30
-    }
-  },
   "rewrites": [
-    { "source": "/assets/:path*", "destination": "/frontend/:path*" },
-    { "source": "/api/:path*", "destination": "/api/index.py" },
+    { "source": "/assets/(.*)", "destination": "/frontend/$1" },
+    { "source": "/api/(.*)", "destination": "/api/index.py" },
     { "source": "/(.*)", "destination": "/frontend/index.html" }
   ]
 }
