@@ -143,42 +143,45 @@ def _catalog_is_enough(merged: list[dict], top_k: int) -> bool:
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     global generator, matcher, google_search, store, post_store, notification_store, message_store, story_store, surplus_store, places_service, food_scanner, mongo_ok, recipe_model
-    token = os.getenv("HF_TOKEN", "").strip()
-    recipe_model = os.getenv(
-        "HF_RECIPE_MODEL", "flax-community/t5-recipe-generation"
-    ).strip()
-    embed_model = os.getenv(
-        "HF_MODEL", "sentence-transformers/all-MiniLM-L6-v2"
-    ).strip()
-    if not token:
-        raise RuntimeError("HF_TOKEN missing in .env")
-    generator = RecipeGenerator(token=token, model=recipe_model)
-    # Catalog matcher kept as fallback if T5 generation fails
-    matcher = RecipeMatcher(token=token, model=embed_model)
-    google_search = GoogleRecipeSearch(
-        api_key=os.getenv("GOOGLE_API_KEY", "").strip(),
-        cse_id=os.getenv("GOOGLE_CSE_ID", "").strip(),
-    )
-    places_service = PlacesService()
-    food_scanner = FoodScanner(token=token)
-    store = UserStore()
-    post_store = PostStore()
-    notification_store = NotificationStore()
-    message_store = MessageStore()
-    story_store = StoryStore()
-    surplus_store = SurplusStore()
     try:
-        get_db()
-        mongo_ok = True
-        admin_user = os.getenv("ADMIN_USERNAME", "admin").strip()
-        admin_pass = os.getenv("ADMIN_PASSWORD", "petugram123").strip()
-        if admin_user and admin_pass:
-            created = store.ensure_admin(admin_user, admin_pass)
-            print(f"Admin account ready: {created['username']} (role: {created['role']})")
+        token = os.getenv("HF_TOKEN", "").strip()
+        recipe_model = os.getenv(
+            "HF_RECIPE_MODEL", "flax-community/t5-recipe-generation"
+        ).strip()
+        embed_model = os.getenv(
+            "HF_MODEL", "sentence-transformers/all-MiniLM-L6-v2"
+        ).strip()
+        if token:
+            generator = RecipeGenerator(token=token, model=recipe_model)
+            matcher = RecipeMatcher(token=token, model=embed_model)
+            food_scanner = FoodScanner(token=token)
+        else:
+            print("WARNING: HF_TOKEN not set — recipe generation and scanning disabled")
+        google_search = GoogleRecipeSearch(
+            api_key=os.getenv("GOOGLE_API_KEY", "").strip(),
+            cse_id=os.getenv("GOOGLE_CSE_ID", "").strip(),
+        )
+        places_service = PlacesService()
+        store = UserStore()
+        post_store = PostStore()
+        notification_store = NotificationStore()
+        message_store = MessageStore()
+        story_store = StoryStore()
+        surplus_store = SurplusStore()
+        try:
+            get_db()
+            mongo_ok = True
+            admin_user = os.getenv("ADMIN_USERNAME", "admin").strip()
+            admin_pass = os.getenv("ADMIN_PASSWORD", "petugram123").strip()
+            if admin_user and admin_pass:
+                created = store.ensure_admin(admin_user, admin_pass)
+                print(f"Admin account ready: {created['username']} (role: {created['role']})")
+        except Exception as exc:  # noqa: BLE001
+            mongo_ok = False
+            print(f"MongoDB unavailable ({exc}). Start MongoDB for pantry & gamification features.")
+        print(f"Recipe model: {recipe_model}")
     except Exception as exc:  # noqa: BLE001
-        mongo_ok = False
-        print(f"MongoDB unavailable ({exc}). Start MongoDB for pantry & gamification features.")
-    print(f"Recipe model: {recipe_model}")
+        print(f"Lifespan init error (non-fatal): {exc}")
     yield
     close_db()
 
